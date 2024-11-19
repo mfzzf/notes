@@ -891,8 +891,7 @@ SESSION 是会话级别，表示只针对当前会话有效，GLOBAL 表示对�
 
 MySQL体系结构：
 
-![结构图](https://dhc.pythonanywhere.com/media/editor/MySQL体系结构_20220315034329549927.png "结构图")  
-![层级描述](https://dhc.pythonanywhere.com/media/editor/MySQL体系结构层级含义_20220315034359342837.png "层级描述")  
+![image-20241119123754850](assets/image-20241119123754850.png)
 
 存储引擎就是存储数据、建立索引、更新/查询数据等技术的实现方式。存储引擎是基于表而不是基于库的，所以存储引擎也可以被称为表引擎。  
 默认存储引擎是InnoDB。  

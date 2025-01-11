@@ -1,0 +1,38 @@
+Redis
+
+端口号：6379
+
+持久化方式：
+（1） RDB  -- 将内存数据，以二进制写入磁盘
+	触发持久化的命令：
+		save -- 主线程阻塞，生产环境慎用！！！
+		bgsave -- fork()调用子进程，只有fork()调用创建子进程期间是阻塞的。
+	自动触发：
+		save m n   --  在m秒里面，有n个键发生改变，触发自动持久化。
+	清空Redis数据库：
+		flushall
+（2） AOF -- 文件追加方式
+（3） 混合持久化方式 
+	混合持久化是结合了 RDB 和 AOF 的优点，在写入的时候，先把当前的数据以 RDB 的形式写入文件的开头，再将后续的操作命令以 AOF 的格式存入文件，这样既能保证 Redis 重启时的速度，又能减低数据丢失的风险。
+
+
+配置说明：
+# RDB 保存的条件
+save 900 1
+save 300 10
+save 60 10000
+
+# bgsave 失败之后，是否停止持久化数据到磁盘，yes 表示停止持久化，no 表示忽略错误继续写文件。
+stop-writes-on-bgsave-error yes
+
+# RDB 文件压缩
+rdbcompression yes
+
+# 写入文件和读取文件时是否开启 RDB 文件检查，检查是否有无损坏，如果在启动是检查发现损坏，则停止启动。
+rdbchecksum yes
+
+# RDB 文件名
+dbfilename dump.rdb
+
+# RDB 文件目录
+dir ./

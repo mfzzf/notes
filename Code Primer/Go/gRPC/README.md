@@ -186,6 +186,91 @@ client.Create(ctx, &CreateOrderRequest{
 
 在相同的项目结构中使用自动生成的源代码很容易，但是如果需要在外部项目中使用这些文件作为依赖项，该怎么办呢？例如，您为Payment、Order和Shipping服务生成了存根，现在希望在可以用Go以外的其他语言编写的另一个项目中使用它们。在这种情况下，最好在单独的存储库中维护.proto文件。但是，如果使用mono repo，将.proto文件及其生成文件保存在同一位置会更容易。让我们看看如何维护.proto文件并在一个单独的存储库中生成它们。
 
+## 版本升级相关
+
+### 升级服务端但没有更新客户端
+
+```go
+//v1
+message CreatePaymentRequest {
+	 float64 price = 1;
+}
+
+message CreatePaymentResponse {
+ 	float64 total_price = 1;
+}
+
+service Payment {
+	rpc Create(CreatePaymentRequest) returns (CreatePaymentResponse){}
+}
+
+func (p *Payment) Create(ctx, req *pb.CreatePaymentRequest) 
+➥ 	(*pb.CreatePaymentResponse, error) {
+	 return &CreatePaymentResponse{
+ 		TotalPrice: VAT + req.Price
+	 }, nil
+}
+```
+
+```go
+//v2
+message CreatePaymentRequest {
+	float64 price = 1;
+	float64 vat = 2; //增值税
+}
+
+message CreatePaymentResponse {
+	float64 total_price = 1;
+}
+
+service Payment {
+	rpc Create(CreatePaymentRequest) returns (CreatePaymentResponse){}
+}
+
+func (p *Payment) Create(ctx, req *pb.CreatePaymentRequest) 
+➥ 	(*pb.CreatePaymentResponse, error) {
+	 return &CreatePaymentResponse{
+ 		TotalPrice: VAT + req.Price
+	 }, nil
+}
+
+
+func (p *Payment) Create(ctx, req *pb.CreatePaymentRequest) (*pb.CreatePaymentResponse, error) {
+	vat := VAT
+	
+    if req.Vat > 0 {
+		vat = req.Vat
+	}
+    
+	return &CreatePaymentResponse{
+        TotalPrice: vat + req.Price
+    }, nil
+}
+
+```
+
+### 升级客户端但服务端没有升级
+
+那么服务端只会处理原来的默认字段，而不会报错。所有服务端未知的字段，发送过来都会默认丢弃。
+
+## oneof
+
+![image-20241208124942198](assets/image-20241208124942198.png)
+
+当你只需要两个字段中的其中一个而不需要两个全都接受的时候，你可以使用`oneof`字段。
+
+注意：
+
+- **删除 `oneof` 中的字段：**
+  如果你从 `oneof` 中删除了一个字段，删除的字段会导致 **不向后兼容**。这是因为已经序列化的数据可能包含你删除的字段，如果你不再接受这个字段，解析时就会出现问题。所以，删除字段时需要谨慎。
+
+- **添加 `oneof` 中的字段：**
+  添加一个新字段到 `oneof` 中会导致 **不向前兼容**。例如，如果旧版的客户端或服务器没有这个新字段，它将无法理解这个新字段，从而导致数据丢失或错误。因此，新增字段时需要注意老版本系统的兼容性。
+
+> 向后兼容（或称为“向后兼容性”）指的是**新版本的系统能够理解和正确处理由旧版本生成的数据或协议**。
+>
+> 向前兼容（或称为“向前兼容性”）是指**旧版本的系统能够理解和正确处理由新版本生成的数据或协议**。
+
 # Context介绍
 
 `context.Background()`返回一个空`Context`
